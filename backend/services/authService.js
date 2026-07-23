@@ -6,15 +6,17 @@ import { sendPasswordResetEmail, sendWelcomeEmail } from "./emailService.js";
 
 // Helper function to generate access and refresh tokens
 const generateTokens = (userId, email) => {
+  const secret = process.env.JWT_SECRET || "default_jwt_secret_pmi_audiobook_2026";
+  const refreshSecret = process.env.JWT_REFRESH_SECRET || secret;
   const accessToken = jwt.sign(
     { id: userId, email },
-    process.env.JWT_SECRET,
+    secret,
     { expiresIn: "15m" } // Short-lived access token
   );
   
   const refreshToken = jwt.sign(
     { id: userId, email },
-    process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
+    refreshSecret,
     { expiresIn: "7d" } // Long-lived refresh token
   );
   
@@ -110,7 +112,8 @@ export const refreshUserToken = async (token) => {
     if (!user) throw new Error("Invalid refresh token");
 
     try {
-        jwt.verify(token, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET);
+        const secret = process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || "default_jwt_secret_pmi_audiobook_2026";
+        jwt.verify(token, secret);
     } catch (err) {
         user.refreshToken = undefined;
         await user.save();

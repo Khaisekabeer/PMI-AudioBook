@@ -12,7 +12,8 @@ export const verifyToken = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const secret = process.env.JWT_SECRET || "default_jwt_secret_pmi_audiobook_2026";
+    const decoded = jwt.verify(token, secret);
     req.userId = decoded.id;
     req.userEmail = decoded.email;
 
