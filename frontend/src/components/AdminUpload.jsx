@@ -17,6 +17,7 @@ import {
   X
 } from "lucide-react";
 import API from '@/api';
+import { getErrorMessage } from '@/lib/utils';
 import styles from './AdminUpload.module.css';
 
 const AdminUpload = ({ existingBook, onComplete }) => {
@@ -189,7 +190,7 @@ const AdminUpload = ({ existingBook, onComplete }) => {
       }
 
     } catch (error) {
-      setStatus({ message: `Error: ${error.message || 'Server error'}`, type: 'error' });
+      setStatus({ message: `Error: ${getErrorMessage(error, 'Server error')}`, type: 'error' });
     } finally {
       setUploading(false);
     }

@@ -10,6 +10,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAccessibility, speak } from "@/hooks/useAccessibility";
 import API from "@/api";
+import { getErrorMessage } from "@/lib/utils";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -129,7 +130,7 @@ const Signup = () => {
         setTimeout(() => navigate("/dashboard"), 2000);
       }
     } catch (err) {
-      const errorMsg = err.response?.data?.error || "Signup failed. Please try again.";
+      const errorMsg = getErrorMessage(err, "Signup failed. Please try again.");
       setErrors({ general: errorMsg });
       if (voiceEnabled) {
         speak(errorMsg);
@@ -183,7 +184,7 @@ const Signup = () => {
           navigate("/dashboard");
         }
       } catch (err) {
-        const errorMsg = "Google signup failed. Please try again.";
+        const errorMsg = getErrorMessage(err, "Google signup failed. Please try again.");
         setErrors({ general: errorMsg });
         if (voiceEnabled) {
           speak(errorMsg);
@@ -193,8 +194,8 @@ const Signup = () => {
         setLoading(false);
       }
     },
-    onError: () => {
-      const errorMsg = "Google signup failed";
+    onError: (error) => {
+      const errorMsg = getErrorMessage(error, "Google signup failed");
       setErrors({ general: errorMsg });
       if (voiceEnabled) {
         speak(errorMsg);

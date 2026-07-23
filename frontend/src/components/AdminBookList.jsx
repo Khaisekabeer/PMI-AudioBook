@@ -12,6 +12,7 @@ import {
   Loader2
 } from "lucide-react";
 import API from '@/api';
+import { getErrorMessage } from '@/lib/utils';
 import styles from './AdminBookList.module.css';
 
 const AdminBookList = ({ onEdit }) => {
@@ -37,7 +38,7 @@ const AdminBookList = ({ onEdit }) => {
       setError(null);
     } catch (err) {
       console.error("Error fetching books:", err);
-      setError("Failed to load audiobooks. Please try again.");
+      setError(getErrorMessage(err, "Failed to load audiobooks. Please try again."));
     } finally {
       setLoading(false);
     }

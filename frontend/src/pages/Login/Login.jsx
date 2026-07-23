@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { useAccessibility, speak } from "@/hooks/useAccessibility";
 import API from "@/api";
+import { getErrorMessage } from "@/lib/utils";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -63,7 +64,7 @@ const Login = () => {
         setTimeout(() => navigate("/dashboard"), 1500);
       }
     } catch (err) {
-      const errorMsg = err.response?.data?.error || "Login failed. Please try again.";
+      const errorMsg = getErrorMessage(err, "Login failed. Please try again.");
       setError(errorMsg);
       if (voiceEnabled) {
         speak(errorMsg);
@@ -128,7 +129,7 @@ const Login = () => {
           throw new Error('No token received from server');
         }
       } catch (err) {
-        const errorMsg = err.response?.data?.error || "Google login failed. Please try again.";
+        const errorMsg = getErrorMessage(err, "Google login failed. Please try again.");
         setError(errorMsg);
         
         if (voiceEnabled) {
@@ -141,7 +142,7 @@ const Login = () => {
     },
     onError: (error) => {
       console.error('Google OAuth error:', error);
-      const errorMsg = error.error_description || "Google login was cancelled or failed. Please try again.";
+      const errorMsg = getErrorMessage(error, "Google login was cancelled or failed. Please try again.");
       setError(errorMsg);
       
       if (voiceEnabled) {

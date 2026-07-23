@@ -20,17 +20,18 @@ export const useAccessibility = () => {
   }, []);
 
   const announce = useCallback((message, priority = 'polite', shouldSpeak = false) => {
+    const textContent = typeof message === 'string' ? message : (message?.message || String(message || ''));
     const announcement = document.createElement('div');
     announcement.setAttribute('role', 'status');
     announcement.setAttribute('aria-live', priority);
     announcement.setAttribute('aria-atomic', 'true');
     announcement.className = 'sr-only';
-    announcement.textContent = message;
+    announcement.textContent = textContent;
     
     document.body.appendChild(announcement);
     
     if (shouldSpeak && voiceEnabled) {
-      speak(message);
+      speak(textContent);
     }
     
     setTimeout(() => {
@@ -96,8 +97,9 @@ export const useAccessibility = () => {
 // Voice feedback utility
 export const speak = (text, options = {}) => {
   if ('speechSynthesis' in window) {
+    const stringText = typeof text === 'string' ? text : (text?.message || String(text || ''));
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
+    const utterance = new SpeechSynthesisUtterance(stringText);
     utterance.rate = options.rate || 1;
     utterance.pitch = options.pitch || 1;
     utterance.volume = options.volume || 1;
