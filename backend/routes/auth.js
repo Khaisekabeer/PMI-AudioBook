@@ -14,7 +14,7 @@ const router = express.Router();
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID;
 const client = new OAuth2Client(GOOGLE_CLIENT_ID);
 
-router.post("/google", async (req, res, next) => {
+router.post("/google", authLimiter, async (req, res, next) => {
   try {
     const { token } = req.body;
     if (!token) return res.status(400).json({ error: 'No token provided' });
@@ -59,9 +59,10 @@ router.post("/google", async (req, res, next) => {
       });
     }
 
+    const secret = process.env.JWT_SECRET || "default_jwt_secret_pmi_audiobook_2026";
     const jwtToken = jwt.sign(
       { id: user._id, email: user.email },
-      process.env.JWT_SECRET,
+      secret,
       { expiresIn: "1h" }
     );
 
@@ -82,7 +83,6 @@ router.post("/forgot-password", passwordResetLimiter, forgotPassword);
 router.post("/reset-password", passwordResetLimiter, resetPassword);
 router.post("/refresh-token", refreshToken);
 router.post("/logout", logout);
-router.post("/google", authLimiter);
 
 // File upload routes (admin only)
 router.post("/upload/audio", verifyToken, requireAdmin, upload.single('audioFile'), uploadAudio);
