@@ -72,15 +72,26 @@ export function createApp() {
   app.use(morgan("dev"));
 
   // ── CORS: allow the configured frontend origin(s) ──────────────────────
-  const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:5173,https://pmi-audio-book.vercel.app")
+  const customOrigins = (process.env.FRONTEND_URL || "")
     .split(",")
-    .map((o) => o.trim());
+    .map((o) => o.trim())
+    .filter(Boolean);
+
+  const allowedOrigins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "https://pmi-audio-book.vercel.app",
+    ...customOrigins,
+  ];
+
   app.use(
     cors({
       origin(origin, cb) {
-        // Allow same-origin/serverless calls (no Origin header) & allow-listed
-        if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
-        return cb(null, false); // reject silently; handler still responds
+        // Allow same-origin/serverless calls (no Origin header) & allow-listed origins or vercel.app domains
+        if (!origin || allowedOrigins.includes(origin) || origin.endsWith(".vercel.app")) {
+          return cb(null, true);
+        }
+        return cb(null, false);
       },
       credentials: true,
       optionsSuccessStatus: 200,
