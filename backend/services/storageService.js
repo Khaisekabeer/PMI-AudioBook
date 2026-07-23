@@ -13,7 +13,6 @@
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
-import { v2 as cloudinary } from "cloudinary";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -26,17 +25,26 @@ export function isCloudStorage() {
   );
 }
 
-function initCloudinary() {
-  if (isCloudStorage()) {
+let cloudinaryInstance = null;
+
+async function getCloudinary() {
+  if (cloudinaryInstance) return cloudinaryInstance;
+  if (!isCloudStorage()) return null;
+
+  try {
+    const { v2: cloudinary } = await import("cloudinary");
     cloudinary.config({
       cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
       api_key: process.env.CLOUDINARY_API_KEY,
       api_secret: process.env.CLOUDINARY_API_SECRET,
       secure: true,
     });
-    return true;
+    cloudinaryInstance = cloudinary;
+    return cloudinaryInstance;
+  } catch (err) {
+    console.error("Failed to initialize Cloudinary:", err.message);
+    return null;
   }
-  return false;
 }
 
 /**
@@ -45,6 +53,11 @@ function initCloudinary() {
  * for raw streaming); covers use "image".
  */
 async function uploadToCloudinary(file, folder) {
+  const cloudinary = await getCloudinary();
+  if (!cloudinary) {
+    throw new Error("Cloudinary configuration is missing or could not be loaded.");
+  }
+
   const resourceType = folder === "covers" ? "image" : "video";
 
   return new Promise((resolve, reject) => {
@@ -109,7 +122,6 @@ export async function storeFile(file, folder) {
   }
 
   if (isCloudStorage()) {
-    initCloudinary();
     return uploadToCloudinary(file, folder);
   }
 
