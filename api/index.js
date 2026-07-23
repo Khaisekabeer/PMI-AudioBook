@@ -10,12 +10,18 @@ const app = createApp();
 
 // ── Serverless-friendly DB connection (cached across warm invocations) ──
 let isConnected = false;
+let lastDbError = null;
+
 async function connectDB() {
-  if (isConnected && mongoose.connection.readyState === 1) return true;
+  if (isConnected && mongoose.connection.readyState === 1) {
+    lastDbError = null;
+    return true;
+  }
 
   const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI;
   if (!mongoUri) {
-    console.error("❌ Database connection error: MONGO_URI is not set.");
+    lastDbError = "Neither MONGO_URI nor MONGODB_URI environment variable is configured in Vercel.";
+    console.error("❌ Database connection error:", lastDbError);
     isConnected = false;
     return false;
   }
@@ -28,10 +34,12 @@ async function connectDB() {
       minPoolSize: 1,
     });
     isConnected = true;
+    lastDbError = null;
     console.log("✅ MongoDB connected (serverless)");
     return true;
   } catch (err) {
-    console.error("MongoDB connection error:", err.message);
+    lastDbError = err.message || String(err);
+    console.error("MongoDB connection error:", lastDbError);
     isConnected = false;
     return false;
   }
@@ -44,16 +52,15 @@ app.use(async (req, res, next) => {
     return next();
   }
 
-  try {
-    await connectDB();
-    next();
-  } catch (err) {
-    console.error("Serverless connection error:", err);
-    res.status(503).json({
+  const connected = await connectDB();
+  if (!connected || mongoose.connection.readyState !== 1) {
+    return res.status(503).json({
       error: "Database Connection Error",
-      message: err.message || "Failed to establish database connection"
+      message: lastDbError || "Failed to establish MongoDB connection.",
+      help: "Check MONGO_URI in Vercel Environment Variables and verify Network Access (0.0.0.0/0) in MongoDB Atlas."
     });
   }
+  next();
 });
 
 export default app;
