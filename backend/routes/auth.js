@@ -1,4 +1,5 @@
 import express from "express";
+import mongoose from "mongoose";
 import { signup, login, forgotPassword, resetPassword, refreshToken, logout } from "../controllers/authController.js";
 import { uploadAudio, uploadCover } from "../controllers/uploadController.js";
 import { verifyToken, requireAdmin, authLimiter, passwordResetLimiter } from "../middleware/authMiddleware.js";
@@ -14,7 +15,7 @@ const router = express.Router();
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID;
 const client = new OAuth2Client(GOOGLE_CLIENT_ID);
 
-router.post("/google", authLimiter, async (req, res, next) => {
+router.post("/google", authLimiter, async (req, res) => {
   try {
     const { token } = req.body;
     if (!token) return res.status(400).json({ error: 'No token provided' });
@@ -38,15 +39,23 @@ router.post("/google", authLimiter, async (req, res, next) => {
         console.error("Google Auth failed. ID Token error:", idTokenError.message);
         console.error("Access Token error:", accessTokenError.message);
         return res.status(401).json({ 
-            error: 'Invalid token', 
-            details: 'Failed to verify as both ID Token and Access Token',
-            idTokenError: idTokenError.message,
-            accessTokenError: accessTokenError.message
+            error: 'Invalid Google token', 
+            details: idTokenError.message || accessTokenError.message
         });
       }
     }
 
-    if (!payload.email) return res.status(400).json({ error: 'No email found in Google profile' });
+    if (!payload || !payload.email) {
+      return res.status(400).json({ error: 'No email found in Google profile' });
+    }
+
+    if (mongoose.connection.readyState !== 1) {
+      console.error("Database connection is not ready. Current readyState:", mongoose.connection.readyState);
+      return res.status(503).json({
+        error: "Database Connection Error",
+        message: "Database is not connected. Please ensure MONGO_URI (or MONGODB_URI) is set in Vercel Environment Variables and Network Access (0.0.0.0/0) is configured in MongoDB Atlas."
+      });
+    }
 
     let user = await User.findOne({ email: payload.email });
     if (!user) {
@@ -72,7 +81,11 @@ router.post("/google", authLimiter, async (req, res, next) => {
       user: { id: user._id, name: user.name, email: user.email, role: user.role },
     });
   } catch (err) {
-    next(err);
+    console.error("Google authentication error:", err);
+    res.status(500).json({
+      error: "Google Authentication Failed",
+      message: err.message || "Server error during Google sign in"
+    });
   }
 });
 

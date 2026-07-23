@@ -13,9 +13,17 @@ const app = createApp();
 // ── Serverless-friendly DB connection (cached across warm invocations) ──
 let isConnected = false;
 async function connectDB() {
-  if (isConnected) return;
+  if (isConnected && mongoose.connection.readyState === 1) return;
+
+  const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI;
+  if (!mongoUri) {
+    console.error("❌ Database connection error: Neither MONGO_URI nor MONGODB_URI environment variable is set.");
+    isConnected = false;
+    return;
+  }
+
   try {
-    await mongoose.connect(process.env.MONGO_URI, {
+    await mongoose.connect(mongoUri, {
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
       maxPoolSize: 2,
@@ -25,7 +33,7 @@ async function connectDB() {
     console.log("✅ MongoDB connected (serverless)");
   } catch (err) {
     console.error("MongoDB connection error:", err);
-    // Don't mark connected; next invocation retries.
+    isConnected = false;
   }
 }
 

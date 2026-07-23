@@ -68,7 +68,7 @@ export function createApp() {
   app.use(morgan("dev"));
 
   // ── CORS: allow the configured frontend origin(s) ──────────────────────
-  const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:5173")
+  const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:5173,https://pmi-audio-book.vercel.app")
     .split(",")
     .map((o) => o.trim());
   app.use(
