@@ -11,26 +11,31 @@ import bcrypt from "bcryptjs";
 
 const router = express.Router();
 
-// Google OAuth setup (Keeping inline for now as it uses specific libs, can be refactored later)
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID;
-const client = new OAuth2Client(GOOGLE_CLIENT_ID);
-
+// Google OAuth setup
 router.post("/google", authLimiter, async (req, res) => {
   try {
     const { token } = req.body;
     if (!token) return res.status(400).json({ error: 'No token provided' });
 
+    const googleClientId = process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID;
+    const client = new OAuth2Client(googleClientId);
+
     let payload;
     try {
       const ticket = await client.verifyIdToken({
         idToken: token,
-        audience: GOOGLE_CLIENT_ID,
+        audience: googleClientId,
       });
       payload = ticket.getPayload();
     } catch (idTokenError) {
       try {
         // Fallback: Try using it as an access token
-        const response = await fetch(`https://www.googleapis.com/oauth2/v3/userinfo?access_token=${token}`);
+        let response = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!response.ok) {
+          response = await fetch(`https://www.googleapis.com/oauth2/v3/userinfo?access_token=${token}`);
+        }
         if (!response.ok) {
           throw new Error(`Failed to fetch user info from Google: ${response.statusText}`);
         }
@@ -39,13 +44,14 @@ router.post("/google", authLimiter, async (req, res) => {
         console.error("Google Auth failed. ID Token error:", idTokenError.message);
         console.error("Access Token error:", accessTokenError.message);
         return res.status(401).json({ 
-            error: 'Invalid Google token', 
-            details: idTokenError.message || accessTokenError.message
+          error: 'Invalid Google token', 
+          details: idTokenError.message || accessTokenError.message
         });
       }
     }
 
-    if (!payload || !payload.email) {
+    const email = payload?.email?.toLowerCase();
+    if (!payload || !email) {
       return res.status(400).json({ error: 'No email found in Google profile' });
     }
 
@@ -57,12 +63,12 @@ router.post("/google", authLimiter, async (req, res) => {
       });
     }
 
-    let user = await User.findOne({ email: payload.email });
+    let user = await User.findOne({ email });
     if (!user) {
       const hashedDummy = await bcrypt.hash("google-oauth", 10);
       user = await User.create({
-        name: payload.name || payload.email.split('@')[0],
-        email: payload.email,
+        name: payload.name || email.split('@')[0],
+        email: email,
         password: hashedDummy,
         profilePicture: payload.picture || ''
       });

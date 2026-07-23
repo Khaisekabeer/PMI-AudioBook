@@ -36,12 +36,16 @@ import { errorHandler } from "../middleware/errorMiddleware.js";
 const mediaHosts = [
   "http://localhost:5000",
   "https://res.cloudinary.com",
+  "https://*.cloudinary.com",
   "https://*.googleusercontent.com",
   "https://*.google.com",
 ].filter(Boolean);
 
 export function createApp() {
   const app = express();
+
+  // ── Trust Proxy (Required for rate limiting behind Vercel / reverse proxies) ──
+  app.set("trust proxy", 1);
 
   // ── Security headers ───────────────────────────────────────────────────
   app.use(
@@ -55,7 +59,7 @@ export function createApp() {
           styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
           imgSrc: ["'self'", "data:", "blob:", ...mediaHosts],
           mediaSrc: ["'self'", "blob:", ...mediaHosts],
-          connectSrc: ["'self'", "https://*.googleapis.com", "https://res.cloudinary.com"],
+          connectSrc: ["'self'", "https://*.googleapis.com", "https://res.cloudinary.com", "https://*.cloudinary.com"],
           fontSrc: ["'self'", "https://fonts.gstatic.com"],
           frameSrc: ["'self'", "https://accounts.google.com"],
           objectSrc: ["'none'"],
@@ -87,9 +91,22 @@ export function createApp() {
   app.use(express.json({ limit: "15mb" }));
   app.use(express.urlencoded({ limit: "15mb", extended: true }));
 
-  // ── Health check (used by Vercel + uptime monitors) ────────────────────
+  // ── Health check & Env Diagnostics ────────────────────────────────────
   app.get("/api/health", (_req, res) =>
-    res.json({ status: "ok", timestamp: new Date().toISOString() })
+    res.json({
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      envCheck: {
+        MONGO_URI: Boolean(process.env.MONGO_URI || process.env.MONGODB_URI),
+        GOOGLE_CLIENT_ID: Boolean(process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID),
+        JWT_SECRET: Boolean(process.env.JWT_SECRET),
+        CLOUDINARY: Boolean(
+          process.env.CLOUDINARY_CLOUD_NAME &&
+          process.env.CLOUDINARY_API_KEY &&
+          process.env.CLOUDINARY_API_SECRET
+        ),
+      },
+    })
   );
 
   // ── API routes (all under /api) ────────────────────────────────────────
