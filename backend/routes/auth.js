@@ -68,15 +68,15 @@ router.post("/google", authLimiter, async (req, res) => {
 
     const secret = process.env.JWT_SECRET || "default_jwt_secret_pmi_audiobook_2026";
     const jwtToken = jwt.sign(
-      { id: user._id, email: user.email },
+      { id: user._id, email: user.email, role: user.role },
       secret,
-      { expiresIn: "1h" }
+      { expiresIn: "7d" }
     );
 
     res.json({
       success: true,
       token: jwtToken,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role },
+      user: { id: user._id, name: user.name, email: user.email, role: user.role, profilePicture: user.profilePicture || '' },
     });
   } catch (err) {
     console.error("Google authentication error:", err);

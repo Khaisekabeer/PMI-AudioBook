@@ -100,17 +100,19 @@ const Dashboard = () => {
             const normalizedAudio = rawAudio ? String(rawAudio).replace(/\\/g, '/') : null;
             const normalizedCover = rawCover ? String(rawCover).replace(/\\/g, '/') : null;
 
+            // If URL is already absolute (Cloudinary, https://...) use as-is
+            // Only prepend /uploads/ for legacy local file paths
             const audioPath = normalizedAudio
-              ? (normalizedAudio.startsWith('/uploads/')
-                  ? normalizedAudio
+              ? (normalizedAudio.startsWith('http') ? normalizedAudio
+                  : normalizedAudio.startsWith('/uploads/') ? normalizedAudio
                   : `/uploads/${normalizedAudio.replace(/^uploads[\/]/, '')}`)
               : null;
 
             const coverPath = normalizedCover
-              ? (normalizedCover.startsWith('/uploads/')
-                  ? normalizedCover
+              ? (normalizedCover.startsWith('http') ? normalizedCover
+                  : normalizedCover.startsWith('/uploads/') ? normalizedCover
                   : `/uploads/${normalizedCover.replace(/^uploads[\/]/, '')}`)
-              : '/placeholder-book.jpg';
+              : null;
 
             return {
               id: book._id,
