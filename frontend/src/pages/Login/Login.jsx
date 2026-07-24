@@ -56,12 +56,14 @@ const Login = () => {
         }
         localStorage.setItem("user", JSON.stringify(response.data.user));
         
+        const isAdmin = response.data.user?.role === 'admin';
+        const dest = isAdmin ? '/admin' : '/dashboard';
         if (voiceEnabled) {
-          speak(`Welcome back ${response.data.user.name}. Redirecting to dashboard.`);
+          speak(`Welcome back ${response.data.user.name}. Redirecting to ${isAdmin ? 'admin portal' : 'dashboard'}.`);
         }
-        announce("Login successful. Redirecting to dashboard.", "assertive");
+        announce(`Login successful. Redirecting to ${dest}.`, "assertive");
         
-        setTimeout(() => navigate("/dashboard"), 1500);
+        setTimeout(() => navigate(dest, { replace: true }), 500);
       }
     } catch (err) {
       const errorMsg = getErrorMessage(err, "Login failed. Please try again.");
@@ -113,17 +115,18 @@ const Login = () => {
             localStorage.setItem("user", JSON.stringify(response.data.user));
           }
           
+          const isAdmin = response.data.user?.role === 'admin';
+          const dest = isAdmin ? '/admin' : '/dashboard';
           
           if (voiceEnabled) {
             const name = response.data.user?.name || 'User';
-            speak(`Welcome ${name}. Redirecting to dashboard.`);
+            speak(`Welcome ${name}. Redirecting to ${isAdmin ? 'admin portal' : 'dashboard'}.`);
           }
           
-          announce("Google login successful. Redirecting to dashboard.", "assertive");
+          announce(`Google login successful. Redirecting to ${dest}.`, "assertive");
           
-          // Add a small delay to allow the announcement to be read
           setTimeout(() => {
-            navigate("/dashboard", { replace: true });
+            navigate(dest, { replace: true });
           }, 500);
         } else {
           throw new Error('No token received from server');
