@@ -6,8 +6,6 @@ import { createApp } from "../backend/src/app.js";
 
 dotenv.config();
 
-const app = createApp();
-
 // ── Serverless-friendly DB connection (cached across warm invocations) ──
 let isConnected = false;
 let lastDbError = null;
@@ -46,7 +44,7 @@ async function connectDB() {
 }
 
 // Connect to DB for incoming requests (skip for health check to allow diagnostics)
-app.use(async (req, res, next) => {
+const dbMiddleware = async (req, res, next) => {
   const url = req.originalUrl || req.url || "";
   if (url.includes("/health")) {
     return next();
@@ -61,6 +59,9 @@ app.use(async (req, res, next) => {
     });
   }
   next();
-});
+};
+
+// Create Express app passing DB middleware to run before API routes mount
+const app = createApp(dbMiddleware);
 
 export default app;

@@ -41,7 +41,7 @@ const mediaHosts = [
   "https://*.google.com",
 ].filter(Boolean);
 
-export function createApp() {
+export function createApp(preMiddleware) {
   const app = express();
 
   // ── Trust Proxy (Required for rate limiting behind Vercel / reverse proxies) ──
@@ -119,6 +119,11 @@ export function createApp() {
       },
     })
   );
+
+  // ── Pre-route middleware (e.g. serverless DB connection) ────────────────
+  if (preMiddleware) {
+    app.use(preMiddleware);
+  }
 
   // ── API routes (all under /api) ────────────────────────────────────────
   app.use("/api/auth", authRoutes);
