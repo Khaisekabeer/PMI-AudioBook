@@ -55,14 +55,6 @@ router.post("/google", authLimiter, async (req, res) => {
       return res.status(400).json({ error: 'No email found in Google profile' });
     }
 
-    if (mongoose.connection.readyState !== 1) {
-      console.error("Database connection is not ready. Current readyState:", mongoose.connection.readyState);
-      return res.status(503).json({
-        error: "Database Connection Error",
-        message: "Database is not connected. Please ensure MONGO_URI (or MONGODB_URI) is set in Vercel Environment Variables and Network Access (0.0.0.0/0) is configured in MongoDB Atlas."
-      });
-    }
-
     let user = await User.findOne({ email });
     if (!user) {
       const hashedDummy = await bcrypt.hash("google-oauth", 10);
