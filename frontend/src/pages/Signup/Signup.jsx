@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAccessibility, speak } from "@/hooks/useAccessibility";
-import API from "@/api";
+import API, { getErrorMessage } from "@/api";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -129,7 +129,7 @@ const Signup = () => {
         setTimeout(() => navigate("/dashboard"), 2000);
       }
     } catch (err) {
-      const errorMsg = err.response?.data?.error || "Signup failed. Please try again.";
+      const errorMsg = getErrorMessage(err, "Signup failed. Please try again.");
       setErrors({ general: errorMsg });
       if (voiceEnabled) {
         speak(errorMsg);

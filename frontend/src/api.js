@@ -35,5 +35,19 @@ API.interceptors.response.use(
 
 const BASE_URL = "";
 
+// API providers do not all use the same error shape. Keep values destined for
+// JSX as text: React cannot render an error object (for example `{ code, message }`).
+export const getErrorMessage = (error, fallback = "Something went wrong. Please try again.") => {
+  const payload = error?.response?.data ?? error;
+  const value = payload?.error ?? payload?.error_description ?? payload?.message ?? error?.message;
+
+  if (typeof value === "string" && value.trim()) return value;
+  if (value && typeof value.message === "string" && value.message.trim()) {
+    return value.message;
+  }
+
+  return fallback;
+};
+
 export { BASE_URL };
 export default API;
