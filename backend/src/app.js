@@ -43,6 +43,10 @@ const mediaHosts = [
 export function createApp() {
   const app = express();
 
+  // Vercel forwards the client address in X-Forwarded-For. Configure this
+  // before express-rate-limit runs so auth requests do not fail validation.
+  app.set("trust proxy", 1);
+
   // ── Security headers ───────────────────────────────────────────────────
   app.use(
     helmet({
