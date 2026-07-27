@@ -1,45 +1,95 @@
 import * as AuthService from '../services/authService.js';
 
-export const signup = async (req, res, next) => {
-    try {
-        const result = await AuthService.signupUser(req.body);
-        res.status(201).json({ 
-            message: "User created successfully",
-            token: result.accessToken,
-            refreshToken: result.refreshToken,
-            user: { 
-                id: result.user._id, 
-                name: result.user.name, 
-                email: result.user.email,
-                role: result.user.role
-            }
-        });
-    } catch (err) {
-        next(err);
-    }
+// export const signup = async (req, res, next) => {
+//     try {
+//         const result = await AuthService.signupUser(req.body);
+//         res.status(201).json({ 
+//             message: "User created successfully",
+//             token: result.accessToken,
+//             refreshToken: result.refreshToken,
+//             user: { 
+//                 id: result.user._id, 
+//                 name: result.user.name, 
+//                 email: result.user.email,
+//                 role: result.user.role
+//             }
+//         });
+//     } catch (err) {
+//         next(err);
+//     }
+// };
+export const signup = async (req, res) => {
+  try {
+    const result = await AuthService.signupUser(req.body);
+
+    return res.status(201).json({
+      message: "User created successfully",
+      token: result.accessToken,
+      refreshToken: result.refreshToken,
+      user: {
+        id: result.user._id,
+        name: result.user.name,
+        email: result.user.email,
+        role: result.user.role,
+      },
+    });
+  } catch (err) {
+    console.error("SIGNUP ERROR");
+    console.error(err);
+    console.error(err.stack);
+
+    return res.status(500).json({
+      error: err.message,
+      stack: err.stack,
+    });
+  }
 };
 
-export const login = async (req, res, next) => {
-    try {
-        const result = await AuthService.loginUser(req.body);
-        res.json({
-            token: result.accessToken,
-            refreshToken: result.refreshToken,
-            user: { 
-                id: result.user._id, 
-                name: result.user.name, 
-                email: result.user.email,
-                role: result.user.role 
-            },
-        });
-    } catch (err) {
-        if (err.message === "User not found" || err.message === "Invalid credentials") {
-            return res.status(400).json({ error: err.message });
-        }
-        next(err);
-    }
-};
+// export const login = async (req, res, next) => {
+//     try {
+//         const result = await AuthService.loginUser(req.body);
+//         res.json({
+//             token: result.accessToken,
+//             refreshToken: result.refreshToken,
+//             user: { 
+//                 id: result.user._id, 
+//                 name: result.user.name, 
+//                 email: result.user.email,
+//                 role: result.user.role 
+//             },
+//         });
+//     } catch (err) {
+//         if (err.message === "User not found" || err.message === "Invalid credentials") {
+//             return res.status(400).json({ error: err.message });
+//         }
+//         next(err);
+//     }
+// };
+export const login = async (req, res) => {
+  try {
+    const result = await AuthService.loginUser(req.body);
 
+    return res.json({
+      token: result.accessToken,
+      refreshToken: result.refreshToken,
+      user: {
+        id: result.user._id,
+        name: result.user.name,
+        email: result.user.email,
+        role: result.user.role,
+      },
+    });
+  } catch (err) {
+    console.error("LOGIN ERROR");
+    console.error(err);
+    console.error(err.stack);
+
+    return res.status(500).json({
+      error: err.message,
+      stack: err.stack,
+    });
+  }
+};
 export const forgotPassword = async (req, res, next) => {
     try {
         await AuthService.forgotPassword(req.body.email);
