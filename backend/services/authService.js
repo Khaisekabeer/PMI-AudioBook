@@ -44,27 +44,63 @@ export const signupUser = async ({ name, email, password }) => {
     };
 };
 
+// export const loginUser = async ({ email, password }) => {
+//     const user = await User.findOne({ email });
+//     if (!user) throw new Error("User not found");
+
+//     const isHashed = typeof user.password === 'string' && user.password.startsWith('$2');
+//     if (!isHashed) throw new Error("Invalid credentials");
+    
+//     const isMatch = await bcrypt.compare(password, user.password);
+//     if (!isMatch) throw new Error("Invalid credentials");
+
+//     const { accessToken, refreshToken } = generateTokens(user._id, user.email);
+    
+//     user.refreshToken = refreshToken;
+//     user.lastLogin = new Date();
+//     await user.save();
+
+//     return { 
+//         user, 
+//         accessToken, 
+//         refreshToken 
+//     };
+// };
 export const loginUser = async ({ email, password }) => {
-    const user = await User.findOne({ email });
-    if (!user) throw new Error("User not found");
+  console.log("Step 1: Login request received", email);
 
-    const isHashed = typeof user.password === 'string' && user.password.startsWith('$2');
-    if (!isHashed) throw new Error("Invalid credentials");
-    
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) throw new Error("Invalid credentials");
+  const user = await User.findOne({ email });
+  console.log("Step 2: User found =", !!user);
 
-    const { accessToken, refreshToken } = generateTokens(user._id, user.email);
-    
-    user.refreshToken = refreshToken;
-    user.lastLogin = new Date();
-    await user.save();
+  if (!user) throw new Error("User not found");
 
-    return { 
-        user, 
-        accessToken, 
-        refreshToken 
-    };
+  console.log("Step 3: Password field =", user.password);
+
+  const isHashed =
+    typeof user.password === "string" && user.password.startsWith("$2");
+  console.log("Step 4: isHashed =", isHashed);
+
+  if (!isHashed) throw new Error("Invalid credentials");
+
+  const isMatch = await bcrypt.compare(password, user.password);
+  console.log("Step 5: Password match =", isMatch);
+
+  if (!isMatch) throw new Error("Invalid credentials");
+
+  console.log("Step 6: JWT_SECRET exists =", !!process.env.JWT_SECRET);
+
+  const { accessToken, refreshToken } = generateTokens(user._id, user.email);
+
+  console.log("Step 7: Tokens generated");
+
+  user.refreshToken = refreshToken;
+  user.lastLogin = new Date();
+
+  await user.save();
+
+  console.log("Step 8: User saved");
+
+  return { user, accessToken, refreshToken };
 };
 
 export const forgotPassword = async (email) => {
