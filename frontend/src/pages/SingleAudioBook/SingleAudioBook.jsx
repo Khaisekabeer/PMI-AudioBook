@@ -20,8 +20,8 @@ import {
   ChevronDown 
 } from "lucide-react";
 import styles from "./SingleAudioBook.module.css";
-import API, { BASE_URL } from "@/api";
-import { useAccessibility, speak } from "@/hooks/useAccessibility";
+import API from "@/api";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const formatTime = (seconds) => {
   if (!seconds) return "0:00";
@@ -38,7 +38,7 @@ const SingleAudioBook = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const audioRef = useRef(null);
-  
+
   const [book, setBook] = useState(null);
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -50,23 +50,13 @@ const SingleAudioBook = () => {
   const [isMuted, setIsMuted] = useState(false);
   const [showChapters, setShowChapters] = useState(false);
 
-  const {
-    highContrast,
-    voiceEnabled,
-    toggleHighContrast,
-    toggleVoiceEnabled,
-    announce
-  } = useAccessibility();
-
   useEffect(() => {
     fetchBookDetails();
-    announce("Player loaded. Use Space to play, Arrows to skip and adjust volume.", "polite", true);
   }, [id]);
 
   useEffect(() => {
     const handleKeys = (e) => {
-      // Don't trigger if typing somewhere (though no inputs here yet)
-      if (e.target.tagName === 'INPUT') return;
+      if (e.target.closest('input, textarea, select, button, a, [contenteditable="true"]')) return;
 
       switch(e.key.toLowerCase()) {
         case ' ':
@@ -91,42 +81,33 @@ const SingleAudioBook = () => {
           break;
         case 'm':
           e.preventDefault();
-          toggleMute();
+          setIsMuted(value => !value);
           break;
         case 'c':
           e.preventDefault();
           setShowChapters(!showChapters);
-          announce(showChapters ? "Chapters closed" : "Chapters opened", "polite", true);
           break;
         case 'escape':
           if (showChapters) setShowChapters(false);
-          break;
-        case 't':
-          e.preventDefault();
-          const time = formatTime(audioRef.current?.currentTime || 0);
-          const total = formatTime(audioRef.current?.duration || 0);
-          const chapterName = book.chapters && book.chapters[currentChapterIndex] ? book.chapters[currentChapterIndex].title : "Main content";
-          announce(`Current time ${time} of ${total}. Playing chapter ${currentChapterIndex + 1}: ${chapterName}`, "assertive", true);
           break;
       }
     };
 
     window.addEventListener('keydown', handleKeys);
     return () => window.removeEventListener('keydown', handleKeys);
-  }, [isPlaying, volume, isMuted, showChapters, voiceEnabled]);
+  }, [isPlaying, volume, isMuted, showChapters]);
 
   const adjustVolume = (delta) => {
     const newVol = Math.max(0, Math.min(1, volume + delta));
     setVolume(newVol);
     if (isMuted) setIsMuted(false);
-    announce(`Volume ${Math.round(newVol * 100)} percent`, "assertive", true);
   };
 
   const fetchBookDetails = async () => {
     try {
       const { data } = await API.get(`/books/${id}`);
       setBook(data);
-      
+
       const token = localStorage.getItem("token");
       if (token) {
         try {
@@ -140,7 +121,7 @@ const SingleAudioBook = () => {
           }
         }
       }
-      
+
       setLoading(false);
     } catch (err) {
       console.error("Error fetching book:", err);
@@ -158,7 +139,7 @@ const SingleAudioBook = () => {
     if (audioRef.current) {
       const time = audioRef.current.currentTime;
       setCurrentTime(time);
-      
+
       // Save progress every 30 seconds
       const seconds = Math.floor(time);
       if (seconds > 0 && seconds % 30 === 0 && Math.floor(currentTime) !== seconds) {
@@ -198,14 +179,12 @@ const SingleAudioBook = () => {
     setCurrentChapterIndex(index);
     setIsPlaying(true);
     setShowChapters(false);
-    const chapter = book.chapters && book.chapters.length > 0 ? book.chapters[index] : null;
-    announce(`Playing ${chapter ? chapter.title : "Book"}`, "assertive", true);
     setTimeout(() => {
         if(audioRef.current) {
           const chapterToPlay = book.chapters && book.chapters.length > 0 
             ? book.chapters[index] 
             : { title: "Full Audio", audioFile: book.audioFile };
-          
+
           audioRef.current.src = getAudioUrl(chapterToPlay.audioFile);
           audioRef.current.currentTime = 0;
           audioRef.current.play();
@@ -217,10 +196,8 @@ const SingleAudioBook = () => {
     if (audioRef.current) {
       if (isPlaying) {
         audioRef.current.pause();
-        announce("Paused", "polite", true);
       } else {
         audioRef.current.play();
-        announce("Playing", "polite", true);
       }
       setIsPlaying(!isPlaying);
     }
@@ -229,7 +206,6 @@ const SingleAudioBook = () => {
   const skip = (amount) => {
     if (audioRef.current) {
       audioRef.current.currentTime += amount;
-      announce(`${amount > 0 ? "Forward" : "Backward"} ${Math.abs(amount)} seconds`, "polite", true);
     }
   };
 
@@ -237,7 +213,6 @@ const SingleAudioBook = () => {
     const speeds = [1.0, 1.25, 1.5, 2.0, 0.75];
     const nextSpeed = speeds[(speeds.indexOf(playbackSpeed) + 1) % speeds.length];
     setPlaybackSpeed(nextSpeed);
-    announce(`Playback speed ${nextSpeed} times`, "assertive", true);
     if (audioRef.current) {
       audioRef.current.playbackRate = nextSpeed;
     }
@@ -276,28 +251,25 @@ const SingleAudioBook = () => {
           className={styles.iconBtn} 
           aria-label="Go back to library" 
           title="Back"
-          onFocus={() => voiceEnabled && speak("Go back to library")}
         >
           <ArrowLeft size={24} />
         </button>
         <div className={styles.actions}>
+          <ThemeToggle />
           <button 
             className={styles.iconBtn} 
             aria-label="Bookmark this book" 
             title="Bookmark"
-            onFocus={() => voiceEnabled && speak("Bookmark this book")}
           ><Bookmark size={22} /></button>
           <button 
             className={styles.iconBtn} 
             aria-label="Share this book" 
             title="Share"
-            onFocus={() => voiceEnabled && speak("Share this book")}
           ><Share2 size={22} /></button>
           <button 
             className={styles.iconBtn} 
             aria-label="Audio settings" 
             title="Settings"
-            onFocus={() => voiceEnabled && speak("Audio settings")}
           ><Settings size={22} /></button>
         </div>
       </header>
@@ -314,7 +286,7 @@ const SingleAudioBook = () => {
               onError={(e) => {
                 e.target.onerror = null; 
                 e.target.style.display = 'none';
-                e.target.parentElement.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-book-open text-gray-400"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>';
+                e.target.parentElement.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-book-open text-gray-400 dark:text-slate-400"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>';
               }}
             />
           ) : (
@@ -374,7 +346,6 @@ const SingleAudioBook = () => {
               onClick={() => skip(-10)} 
               aria-label="Rewind 10 seconds" 
               title="Rewind"
-              onFocus={() => voiceEnabled && speak("Rewind 10 seconds")}
             >
               <Rewind size={24} />
             </button>
@@ -384,7 +355,6 @@ const SingleAudioBook = () => {
               onClick={() => playChapter(currentChapterIndex - 1)}
               aria-label="Previous chapter"
               title="Previous"
-              onFocus={() => voiceEnabled && speak("Previous chapter")}
             >
               <SkipBack size={28} />
             </button>
@@ -393,7 +363,6 @@ const SingleAudioBook = () => {
               onClick={togglePlay} 
               aria-label={isPlaying ? "Pause" : "Play"}
               title={isPlaying ? "Pause" : "Play"}
-              onFocus={() => voiceEnabled && speak(isPlaying ? "Pause" : "Play")}
             >
               {isPlaying ? <Pause size={36} fill="currentColor" /> : <Play size={36} fill="currentColor" style={{ marginLeft: '4px' }} />}
             </button>
@@ -403,7 +372,6 @@ const SingleAudioBook = () => {
               onClick={() => playChapter(currentChapterIndex + 1)}
               aria-label="Next chapter"
               title="Next"
-              onFocus={() => voiceEnabled && speak("Next chapter")}
             >
               <SkipForward size={28} />
             </button>
@@ -412,7 +380,6 @@ const SingleAudioBook = () => {
               onClick={() => skip(10)} 
               aria-label="Fast forward 10 seconds" 
               title="Forward"
-              onFocus={() => voiceEnabled && speak("Fast forward 10 seconds")}
             >
               <FastForward size={24} />
             </button>
@@ -424,7 +391,6 @@ const SingleAudioBook = () => {
                 className={styles.speedBtn} 
                 onClick={handleSpeedChange}
                 aria-label={`Playback speed: ${playbackSpeed}x. Click to change.`}
-                onFocus={() => voiceEnabled && speak(`Playback speed, currently ${playbackSpeed} times`)}
               >
                 {playbackSpeed}x
               </button>
@@ -433,7 +399,6 @@ const SingleAudioBook = () => {
                   className={styles.iconBtn} 
                   onClick={() => setIsMuted(!isMuted)}
                   aria-label={isMuted || volume === 0 ? "Unmute" : "Mute"}
-                  onFocus={() => voiceEnabled && speak(isMuted || volume === 0 ? "Unmute" : "Mute")}
                 >
                   {isMuted || volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
                 </button>
@@ -447,11 +412,10 @@ const SingleAudioBook = () => {
                   className={styles.volumeSlider}
                   aria-label="Volume"
                   aria-valuetext={`${Math.round(volume * 100)} percent`}
-                  onFocus={() => voiceEnabled && speak(`Volume slider, current ${Math.round(volume * 100)} percent`)}
                 />
               </div>
             </div>
-            
+
             <div style={{ position: 'relative' }}>
               <button 
                 className={styles.chaptersDropdown} 
@@ -459,13 +423,12 @@ const SingleAudioBook = () => {
                 aria-expanded={showChapters}
                 aria-haspopup="listbox"
                 aria-label="Select chapter"
-                onFocus={() => voiceEnabled && speak("Select chapter dropdown")}
               >
                 <List size={18} />
                 <span>Chapters</span>
                 <ChevronDown size={14} />
               </button>
-              
+
               {showChapters && book.chapters && (
                 <div className={styles.popover} role="listbox" aria-label="Chapters">
                   {book.chapters.map((ch, idx) => (
@@ -475,10 +438,9 @@ const SingleAudioBook = () => {
                       aria-selected={idx === currentChapterIndex}
                       className={`${styles.chapterItem} ${idx === currentChapterIndex ? styles.activeChapterItem : ''}`}
                       onClick={() => playChapter(idx)}
-                      onFocus={() => voiceEnabled && speak(`Chapter ${idx + 1}: ${ch.title}`)}
                     >
                       <span>{idx + 1}. {ch.title}</span>
-                      <span className="text-gray-400">{ch.duration ? `${ch.duration}m` : ''}</span>
+                      <span className="text-gray-400 dark:text-slate-400">{ch.duration ? `${ch.duration}m` : ''}</span>
                     </button>
                   ))}
                 </div>

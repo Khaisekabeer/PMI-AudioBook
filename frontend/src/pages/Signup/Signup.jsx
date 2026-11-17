@@ -1,14 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useGoogleLogin } from "@react-oauth/google";
-import { Eye, EyeOff, Volume2, VolumeX, Contrast, Type, UserPlus, AlertCircle, CheckCircle } from "lucide-react";
+import { Eye, EyeOff, Contrast, Type, UserPlus, AlertCircle, CheckCircle } from "lucide-react";
 import pmiLogo from "@/assets/pmi-logo.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useAccessibility, speak } from "@/hooks/useAccessibility";
+import { useAccessibility } from "@/hooks/useAccessibility";
+import ThemeToggle from "@/components/ThemeToggle";
 import API, { getErrorMessage } from "@/api";
 
 const Signup = () => {
@@ -25,24 +26,12 @@ const Signup = () => {
   const [errors, setErrors] = useState({});
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [signupSuccess, setSignupSuccess] = useState(false);
-  
+
   const {
-    highContrast,
     largeText,
-    voiceEnabled,
     toggleHighContrast,
     toggleLargeText,
-    toggleVoiceEnabled,
-    announce
   } = useAccessibility();
-
-  // Voice feedback on component mount
-  useEffect(() => {
-    if (voiceEnabled) {
-      speak("Welcome to PMI AudioBook signup page. Create your account to access audiobooks. Press Tab to navigate through the form fields.");
-    }
-    announce("Signup page loaded. Name field focused.", "polite");
-  }, []);
 
   // Calculate password strength
   const calculatePasswordStrength = (password) => {
@@ -57,54 +46,44 @@ const Signup = () => {
   // Validate form
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.name.trim()) {
       newErrors.name = "Name is required";
     }
-    
+
     if (!formData.email.trim()) {
       newErrors.email = "Email is required";
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = "Email is invalid";
     }
-    
+
     if (!formData.password) {
       newErrors.password = "Password is required";
     } else if (formData.password.length < 8) {
       newErrors.password = "Password must be at least 8 characters";
     }
-    
+
     if (!formData.confirmPassword) {
       newErrors.confirmPassword = "Please confirm your password";
     } else if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = "Passwords do not match";
     }
-    
+
     return newErrors;
   };
 
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     const validationErrors = validateForm();
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
-      const firstError = Object.values(validationErrors)[0];
-      if (voiceEnabled) {
-        speak(`Validation error: ${firstError}`);
-      }
-      announce(firstError, "assertive");
       return;
     }
-    
+
     setErrors({});
     setLoading(true);
-    
-    if (voiceEnabled) {
-      speak("Creating your account. Please wait.");
-    }
-    announce("Processing signup request", "polite");
 
     try {
       const response = await API.post("/auth/signup", {
@@ -112,29 +91,21 @@ const Signup = () => {
         email: formData.email,
         password: formData.password
       });
-      
+
       if (response.data.token) {
         localStorage.setItem("token", response.data.token);
         if (response.data.refreshToken) {
           localStorage.setItem("refreshToken", response.data.refreshToken);
         }
         localStorage.setItem("user", JSON.stringify(response.data.user));
-        
-        if (voiceEnabled) {
-          speak(`Welcome ${response.data.user.name}. Account created successfully. Redirecting to dashboard.`);
-        }
-        announce("Signup successful. Redirecting to dashboard.", "assertive");
+
         setSignupSuccess(true);
-        
+
         setTimeout(() => navigate("/dashboard"), 2000);
       }
     } catch (err) {
       const errorMsg = getErrorMessage(err, "Signup failed. Please try again.");
       setErrors({ general: errorMsg });
-      if (voiceEnabled) {
-        speak(errorMsg);
-      }
-      announce(errorMsg, "assertive");
     } finally {
       setLoading(false);
     }
@@ -144,12 +115,12 @@ const Signup = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    
+
     // Calculate password strength
     if (name === "password") {
       setPasswordStrength(calculatePasswordStrength(value));
     }
-    
+
     // Clear error for this field when user starts typing
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: "" }));
@@ -161,34 +132,23 @@ const Signup = () => {
     onSuccess: async (tokenResponse) => {
       try {
         setLoading(true);
-        if (voiceEnabled) {
-          speak("Processing Google sign up.");
-        }
-        
+
         const response = await API.post("/auth/google", {
           token: tokenResponse.access_token
         });
-        
+
         if (response.data.token) {
           localStorage.setItem("token", response.data.token);
           if (response.data.refreshToken) {
             localStorage.setItem("refreshToken", response.data.refreshToken);
           }
           localStorage.setItem("user", JSON.stringify(response.data.user));
-          
-          if (voiceEnabled) {
-            speak(`Welcome ${response.data.user.name}. Account created. Redirecting to dashboard.`);
-          }
-          announce("Google signup successful.", "assertive");
+
           navigate("/dashboard");
         }
       } catch (err) {
         const errorMsg = "Google signup failed. Please try again.";
         setErrors({ general: errorMsg });
-        if (voiceEnabled) {
-          speak(errorMsg);
-        }
-        announce(errorMsg, "assertive");
       } finally {
         setLoading(false);
       }
@@ -196,35 +156,24 @@ const Signup = () => {
     onError: () => {
       const errorMsg = "Google signup failed";
       setErrors({ general: errorMsg });
-      if (voiceEnabled) {
-        speak(errorMsg);
-      }
     }
   });
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 font-inter">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4 pt-20 sm:pt-4 font-inter">
       {/* Skip to main content link */}
       <a href="#signup-form" className="sr-only-focusable">
         Skip to signup form
       </a>
-      
+
       {/* Accessibility controls */}
       <div className="fixed top-4 right-4 flex gap-2 z-50">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleVoiceEnabled}
-          className={`transition-colors ${voiceEnabled ? "text-blue-600 bg-blue-50" : "text-slate-500 hover:text-blue-600"}`}
-          aria-label={voiceEnabled ? "Disable voice feedback" : "Enable voice feedback"}
-        >
-          {voiceEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-        </Button>
+        <ThemeToggle />
         <Button
           variant="ghost"
           size="icon"
           onClick={toggleHighContrast}
-          className="text-slate-500 hover:text-blue-600"
+          className="text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400"
           aria-label="Toggle high contrast"
         >
           <Contrast className="h-4 w-4" />
@@ -240,14 +189,14 @@ const Signup = () => {
         </Button>
       </div>
 
-      <Card className="w-full max-w-md shadow-xl border-slate-200 animate-in fade-in slide-in-from-bottom-4 duration-500" id="signup-form">
+      <Card className="w-full max-w-md shadow-xl border-slate-200 dark:border-slate-700 animate-in fade-in slide-in-from-bottom-4 duration-500" id="signup-form">
         <CardHeader className="text-center pb-2">
           {/* PMI Logo */}
           <div className="mx-auto mb-6 flex items-center justify-center">
-            <img src={pmiLogo} alt="PMI Logo" className="h-16 w-auto shadow-lg shadow-blue-200 transition-transform duration-300" />
+            <img src={pmiLogo} alt="PMI Logo" className="h-16 w-auto shadow-lg shadow-blue-200 dark:shadow-none transition-transform duration-300" />
           </div>
-          <CardTitle className="text-2xl font-bold text-slate-800">Create Account</CardTitle>
-          <CardDescription className="text-slate-500">
+          <CardTitle className="text-2xl font-bold text-slate-800 dark:text-slate-100">Create Account</CardTitle>
+          <CardDescription className="text-slate-500 dark:text-slate-400">
             Join the community and start listening
           </CardDescription>
         </CardHeader>
@@ -263,7 +212,7 @@ const Signup = () => {
                 </AlertDescription>
               </Alert>
             )}
-            
+
             {/* General error message */}
             {errors.general && !signupSuccess && (
               <Alert variant="destructive" className="animate-slide-in">
@@ -276,7 +225,7 @@ const Signup = () => {
 
             {/* Name field */}
             <div className="space-y-2">
-              <Label htmlFor="name" className="block mb-1.5 font-semibold text-slate-700">
+              <Label htmlFor="name" className="block mb-1.5 font-semibold text-slate-700 dark:text-slate-200">
                 Full Name
                 <span className="sr-only">Required field</span>
               </Label>
@@ -292,7 +241,6 @@ const Signup = () => {
                 aria-required="true"
                 aria-invalid={errors.name ? "true" : "false"}
                 aria-describedby={errors.name ? "name-error" : undefined}
-                onFocus={() => voiceEnabled && speak("Full name field. Type your name.")}
                 className="enhanced-focus transition-all duration-200 hover:border-purple-400"
               />
               {errors.name && (
@@ -304,7 +252,7 @@ const Signup = () => {
 
             {/* Email field */}
             <div className="space-y-2">
-              <Label htmlFor="email" className="block mb-1.5 font-semibold text-slate-700">
+              <Label htmlFor="email" className="block mb-1.5 font-semibold text-slate-700 dark:text-slate-200">
                 Email Address
                 <span className="sr-only">Required field</span>
               </Label>
@@ -320,7 +268,6 @@ const Signup = () => {
                 aria-required="true"
                 aria-invalid={errors.email ? "true" : "false"}
                 aria-describedby={errors.email ? "email-error" : undefined}
-                onFocus={() => voiceEnabled && speak("Email address field. Type your email.")}
                 className="enhanced-focus transition-all duration-200 hover:border-purple-400"
               />
               {errors.email && (
@@ -332,7 +279,7 @@ const Signup = () => {
 
             {/* Password field */}
             <div className="space-y-2">
-              <Label htmlFor="password" className="block mb-1.5 font-semibold text-slate-700">
+              <Label htmlFor="password" className="block mb-1.5 font-semibold text-slate-700 dark:text-slate-200">
                 Password
                 <span className="sr-only">Required field, minimum 8 characters</span>
               </Label>
@@ -349,7 +296,6 @@ const Signup = () => {
                   aria-required="true"
                   aria-invalid={errors.password ? "true" : "false"}
                   aria-describedby="password-requirements"
-                  onFocus={() => voiceEnabled && speak("Password field. Create a password with at least 8 characters.")}
                   className="enhanced-focus pr-10 transition-all duration-200 hover:border-purple-400"
                 />
                 <button
@@ -364,7 +310,7 @@ const Signup = () => {
               <p id="password-requirements" className="text-xs text-muted-foreground">
                 Password must be at least 8 characters long
               </p>
-              
+
               {/* Password strength indicator */}
               {formData.password && (
                 <div className="space-y-1">
@@ -395,7 +341,7 @@ const Signup = () => {
                   )}
                 </div>
               )}
-              
+
               {errors.password && (
                 <p className="text-sm text-red-600" role="alert">
                   {errors.password}
@@ -405,7 +351,7 @@ const Signup = () => {
 
             {/* Confirm Password field */}
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="block mb-1.5 font-semibold text-slate-700">
+              <Label htmlFor="confirmPassword" className="block mb-1.5 font-semibold text-slate-700 dark:text-slate-200">
                 Confirm Password
                 <span className="sr-only">Required field</span>
               </Label>
@@ -422,7 +368,6 @@ const Signup = () => {
                   aria-required="true"
                   aria-invalid={errors.confirmPassword ? "true" : "false"}
                   aria-describedby={errors.confirmPassword ? "confirm-error" : undefined}
-                  onFocus={() => voiceEnabled && speak("Confirm password field. Re-enter your password.")}
                   className="enhanced-focus pr-10 transition-all duration-200 hover:border-purple-400"
                 />
                 <button
@@ -443,10 +388,9 @@ const Signup = () => {
 
             <Button
               type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-100 h-11 transition-all"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-100 dark:shadow-none h-11 transition-all"
               disabled={loading || signupSuccess}
               aria-busy={loading}
-              onFocus={() => voiceEnabled && speak("Create account button. Press Enter to sign up.")}
             >
               {loading ? (
                 <span className="animate-pulse">Creating account...</span>
@@ -460,17 +404,17 @@ const Signup = () => {
 
             <div className="relative py-2">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-slate-200" />
+                <span className="w-full border-t border-slate-200 dark:border-slate-700" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-slate-400">Or sign up with</span>
+                <span className="bg-white dark:bg-slate-900 px-2 text-slate-400">Or sign up with</span>
               </div>
             </div>
 
             <Button
               type="button"
               variant="outline"
-              className="w-full border-slate-200 h-11 hover:bg-slate-50 transition-colors"
+              className="w-full border-slate-200 dark:border-slate-700 h-11 hover:bg-slate-50 dark:hover:bg-slate-950 transition-colors"
               onClick={() => googleSignup()}
               disabled={loading || signupSuccess}
             >
@@ -503,8 +447,7 @@ const Signup = () => {
               Already have an account?{" "}
               <Link
                 to="/login"
-                className="text-blue-600 hover:underline font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
-                onFocus={() => voiceEnabled && speak("Sign in link. Go to login page.")}
+                className="text-blue-600 dark:text-blue-400 hover:underline font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
               >
                 Sign in
               </Link>
@@ -520,10 +463,6 @@ const Signup = () => {
         </CardFooter>
       </Card>
 
-      {/* Hidden live region for screen reader announcements */}
-      <div aria-live="polite" aria-atomic="true" className="sr-only">
-        <span role="status"></span>
-      </div>
     </div>
   );
 };

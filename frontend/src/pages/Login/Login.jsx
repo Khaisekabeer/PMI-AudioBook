@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useGoogleLogin } from "@react-oauth/google";
-import { Eye, EyeOff, Volume2, VolumeX, Contrast, Type, LogIn } from "lucide-react";
+import { Eye, EyeOff, Contrast, LogIn } from "lucide-react";
 import pmiLogo from "@/assets/pmi-logo.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-import { useAccessibility, speak } from "@/hooks/useAccessibility";
+import { useAccessibility } from "@/hooks/useAccessibility";
+import ThemeToggle from "@/components/ThemeToggle";
 import API, { getErrorMessage } from "@/api";
 
 const Login = () => {
@@ -17,58 +18,32 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  
-  const {
-    highContrast,
-    voiceEnabled,
-    toggleHighContrast,
-    toggleVoiceEnabled,
-    announce
-  } = useAccessibility();
 
-  // Voice feedback on component mount
-  useEffect(() => {
-    if (voiceEnabled) {
-      speak("Welcome to PMI AudioBook login page. Press Tab to navigate through the form fields.");
-    }
-    announce("Login page loaded. Email field focused.", "polite");
-  }, []);
+  const {
+    toggleHighContrast,
+  } = useAccessibility();
 
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
-    
-    if (voiceEnabled) {
-      speak("Signing you in. Please wait.");
-    }
-    announce("Processing login request", "polite");
 
     try {
       const response = await API.post("/auth/login", { email, password });
-      
+
       if (response.data.token) {
         localStorage.setItem("token", response.data.token);
         if (response.data.refreshToken) {
           localStorage.setItem("refreshToken", response.data.refreshToken);
         }
         localStorage.setItem("user", JSON.stringify(response.data.user));
-        
-        if (voiceEnabled) {
-          speak(`Welcome back ${response.data.user.name}. Redirecting to dashboard.`);
-        }
-        announce("Login successful. Redirecting to dashboard.", "assertive");
-        
-        setTimeout(() => navigate("/dashboard"), 1500);
+
+        navigate("/dashboard");
       }
     } catch (err) {
       const errorMsg = getErrorMessage(err, "Login failed. Please try again.");
       setError(errorMsg);
-      if (voiceEnabled) {
-        speak(errorMsg);
-      }
-      announce(errorMsg, "assertive");
     } finally {
       setLoading(false);
     }
@@ -80,28 +55,21 @@ const Login = () => {
       try {
         setLoading(true);
         setError('');
-        
-        if (voiceEnabled) {
-          speak("Processing Google sign in.");
-        }
-        announce("Processing Google sign in.", "polite");
-        
+
         // First, get the user info to ensure we have a valid token
         const userInfo = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
           headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
         }).then(res => res.json());
-        
-        
+
         if (!userInfo || userInfo.error) {
           throw new Error('Failed to fetch user info from Google');
         }
-        
+
         // Send the ID token to your backend for verification
         const response = await API.post("/auth/google", {
           token: tokenResponse.id_token || tokenResponse.access_token
         });
-        
-        
+
         if (response.data.token) {
           // Store the tokens and user data
           localStorage.setItem("token", response.data.token);
@@ -111,30 +79,15 @@ const Login = () => {
           if (response.data.user) {
             localStorage.setItem("user", JSON.stringify(response.data.user));
           }
-          
-          
-          if (voiceEnabled) {
-            const name = response.data.user?.name || 'User';
-            speak(`Welcome ${name}. Redirecting to dashboard.`);
-          }
-          
-          announce("Google login successful. Redirecting to dashboard.", "assertive");
-          
-          // Add a small delay to allow the announcement to be read
-          setTimeout(() => {
-            navigate("/dashboard", { replace: true });
-          }, 500);
+
+          navigate("/dashboard", { replace: true });
         } else {
           throw new Error('No token received from server');
         }
       } catch (err) {
         const errorMsg = getErrorMessage(err, "Google login failed. Please try again.");
         setError(errorMsg);
-        
-        if (voiceEnabled) {
-          speak(errorMsg);
-        }
-        announce(errorMsg, "assertive");
+
       } finally {
         setLoading(false);
       }
@@ -143,57 +96,46 @@ const Login = () => {
       console.error('Google OAuth error:', error);
       const errorMsg = getErrorMessage(error, "Google login was cancelled or failed. Please try again.");
       setError(errorMsg);
-      
-      if (voiceEnabled) {
-        speak(errorMsg);
-      }
+
     }
   });
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 font-inter">
-      {/* Skip to main content link for screen readers */}
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4 pt-20 sm:pt-4 font-inter">
+      {/* Skip to main content link */}
       <a href="#login-form" className="sr-only-focusable">
         Skip to login form
       </a>
-      
+
       {/* Accessibility controls */}
       <div className="fixed top-4 right-4 flex gap-2 z-50">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleVoiceEnabled}
-          className={`transition-colors ${voiceEnabled ? "text-blue-600 bg-blue-50" : "text-slate-500 hover:text-blue-600"}`}
-          aria-label={voiceEnabled ? "Disable voice feedback" : "Enable voice feedback"}
-        >
-          {voiceEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-        </Button>
+        <ThemeToggle />
         <Button
           variant="ghost"
           size="icon"
           onClick={toggleHighContrast}
-          className="text-slate-500 hover:text-blue-600"
+          className="text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400"
           aria-label="Toggle high contrast"
         >
           <Contrast className="h-4 w-4" />
         </Button>
       </div>
 
-      <Card className="w-full max-w-md shadow-xl border-slate-200 animate-in fade-in slide-in-from-bottom-4 duration-500" id="login-form">
+      <Card className="w-full max-w-md shadow-xl border-slate-200 dark:border-slate-700 animate-in fade-in slide-in-from-bottom-4 duration-500" id="login-form">
         <CardHeader className="text-center pb-2">
           {/* PMI Logo */}
           <div className="mx-auto mb-6 flex items-center justify-center">
-            <img src={pmiLogo} alt="PMI Logo" className="h-16 w-auto shadow-lg shadow-blue-200" />
+            <img src={pmiLogo} alt="PMI Logo" className="h-16 w-auto shadow-lg shadow-blue-200 dark:shadow-none" />
           </div>
-          <CardTitle className="text-2xl font-bold text-slate-800">Welcome Back</CardTitle>
-          <CardDescription className="text-slate-500">
+          <CardTitle className="text-2xl font-bold text-slate-800 dark:text-slate-100">Welcome Back</CardTitle>
+          <CardDescription className="text-slate-500 dark:text-slate-400">
             Sign in to continue your reading journey
           </CardDescription>
         </CardHeader>
 
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Screen reader announcement for errors */}
+            {/* Login errors */}
             {error && (
               <div 
                 role="alert" 
@@ -205,7 +147,7 @@ const Login = () => {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="block mb-1.5 font-semibold text-slate-700">
+              <Label htmlFor="email" className="block mb-1.5 font-semibold text-slate-700 dark:text-slate-200">
                 Email address
                 <span className="sr-only">Required field</span>
               </Label>
@@ -220,13 +162,12 @@ const Login = () => {
                 aria-required="true"
                 aria-invalid={error ? "true" : "false"}
                 aria-describedby={error ? "email-error" : undefined}
-                onFocus={() => voiceEnabled && speak("Email address field. Type your email.")}
                 className="enhanced-focus"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="block mb-1.5 font-semibold text-slate-700">
+              <Label htmlFor="password" className="block mb-1.5 font-semibold text-slate-700 dark:text-slate-200">
                 Password
                 <span className="sr-only">Required field</span>
               </Label>
@@ -242,7 +183,6 @@ const Login = () => {
                   aria-required="true"
                   aria-invalid={error ? "true" : "false"}
                   aria-describedby="password-help"
-                  onFocus={() => voiceEnabled && speak("Password field. Type your password.")}
                   className="enhanced-focus pr-10"
                 />
                 <button
@@ -262,8 +202,7 @@ const Login = () => {
             <div className="flex items-center justify-between">
               <Link
                 to="/forgot-password"
-                className="text-sm text-blue-600 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
-                onFocus={() => voiceEnabled && speak("Forgot password link")}
+                className="text-sm text-blue-600 dark:text-blue-400 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
               >
                 Forgot password?
               </Link>
@@ -271,10 +210,9 @@ const Login = () => {
 
             <Button
               type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-100 h-11"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-100 dark:shadow-none h-11"
               disabled={loading}
               aria-busy={loading}
-              onFocus={() => voiceEnabled && speak("Login button. Press Enter to sign in.")}
             >
               {loading ? (
                 <span className="animate-pulse">Signing in...</span>
@@ -288,17 +226,17 @@ const Login = () => {
 
             <div className="relative py-2">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-slate-200" />
+                <span className="w-full border-t border-slate-200 dark:border-slate-700" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-slate-400">Or continue with</span>
+                <span className="bg-white dark:bg-slate-900 px-2 text-slate-400">Or continue with</span>
               </div>
             </div>
 
             <Button
               type="button"
               variant="outline"
-              className="w-full border-slate-200 h-11 hover:bg-slate-50 transition-colors"
+              className="w-full border-slate-200 dark:border-slate-700 h-11 hover:bg-slate-50 dark:hover:bg-slate-950 transition-colors"
               onClick={() => googleLogin()}
               disabled={loading}
             >
@@ -331,8 +269,7 @@ const Login = () => {
               Don't have an account?{" "}
               <Link
                 to="/signup"
-                className="text-blue-600 hover:underline font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
-                onFocus={() => voiceEnabled && speak("Sign up link. Create a new account.")}
+                className="text-blue-600 dark:text-blue-400 hover:underline font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
               >
                 Sign up
               </Link>
@@ -345,10 +282,6 @@ const Login = () => {
         </CardFooter>
       </Card>
 
-      {/* Hidden live region for screen reader announcements */}
-      <div aria-live="polite" aria-atomic="true" className="sr-only">
-        <span role="status"></span>
-      </div>
     </div>
   );
 };

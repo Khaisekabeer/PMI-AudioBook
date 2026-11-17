@@ -2,7 +2,7 @@
   max-width: 900px;
   margin: 0 auto;
   padding: 1rem;
-  color: #1e293b;
+  color: hsl(var(--foreground));
   background-color: transparent;
   font-family: 'Inter', system-ui, sans-serif;
 }
@@ -28,26 +28,26 @@
   align-items: center;
   gap: 0.75rem;
   padding-bottom: 0.5rem;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid hsl(var(--border));
 }
 
 .sectionIcon {
-  color: #0076bb;
+  color: hsl(var(--link));
 }
 
 .sectionTitle {
   font-size: 1.125rem;
   font-weight: 700;
   margin: 0;
-  color: #0f172a;
+  color: hsl(var(--foreground));
 }
 
 /* Audio Dropzone area */
 .chapterCard {
-  background: #f8fafc;
+  background: hsl(var(--muted));
   border-radius: 16px;
   padding: 1.5rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid hsl(var(--border));
   margin-bottom: 1.5rem;
   position: relative;
 }
@@ -59,8 +59,8 @@
 }
 
 .chapterNumber {
-  background: #e2e8f0;
-  color: #475569;
+  background: hsl(var(--border));
+  color: hsl(var(--muted-foreground));
   font-size: 0.75rem;
   font-weight: 700;
   padding: 0.25rem 0.6rem;
@@ -68,9 +68,9 @@
 }
 
 .removeChapter {
-  color: #ef4444;
-  background: #fef2f2;
-  border: 1px solid #fee2e2;
+  color: hsl(var(--danger-text));
+  background: hsl(var(--danger-surface));
+  border: 1px solid hsl(var(--danger-border));
   width: 28px;
   height: 28px;
   border-radius: 50%;
@@ -81,15 +81,15 @@
 }
 
 .removeChapter:hover {
-  background: #fee2e2;
+  background: hsl(var(--danger-border));
 }
 
 .dropzone {
-  border: 2px dashed #cbd5e1;
+  border: 2px dashed hsl(var(--border));
   border-radius: 12px;
   padding: 2.5rem 1.5rem;
   text-align: center;
-  background: #ffffff;
+  background: hsl(var(--card));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -99,12 +99,12 @@
 }
 
 .dropzone:hover {
-  border-color: #0076bb;
-  background: #f0f9ff;
+  border-color: hsl(var(--link));
+  background: hsl(var(--tint));
 }
 
 .uploadIcon {
-  color: #0076bb;
+  color: hsl(var(--link));
   margin-bottom: 0.5rem;
   opacity: 0.8;
 }
@@ -112,13 +112,13 @@
 .dropTitle {
   font-weight: 600;
   margin: 0;
-  color: #1e293b;
+  color: hsl(var(--foreground));
   max-width: 100%;
   word-break: break-all;
 }
 
 .dropSubtitle {
-  color: #64748b;
+  color: hsl(var(--muted-foreground));
   font-size: 0.8125rem;
   margin: 0 0 1rem 0;
 }
@@ -159,7 +159,7 @@
 .label {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #475569;
+  color: hsl(var(--muted-foreground));
   margin-bottom: 0.25rem;
 }
 
@@ -172,7 +172,7 @@
 .fieldIcon {
   position: absolute;
   left: 1.125rem;
-  color: #94a3b8;
+  color: hsl(var(--muted-foreground));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -182,18 +182,18 @@
 
 .input, .textarea {
   width: 100%;
-  background: #ffffff;
-  border: 1px solid #e1e8ef;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
   border-radius: 12px;
   padding: 0.875rem 1rem 0.875rem 3.25rem;
-  color: #1e293b;
+  color: hsl(var(--foreground));
   font-size: 0.9375rem;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .input:focus, .textarea:focus {
   outline: none;
-  border-color: #0076bb;
+  border-color: hsl(var(--link));
   box-shadow: 0 0 0 3px rgba(0, 118, 187, 0.1);
 }
 
@@ -222,19 +222,19 @@
   gap: 0.5rem;
   width: 100%;
   padding: 1rem;
-  background: #f1f5f9;
-  border: 1px dashed #cbd5e1;
+  background: hsl(var(--muted));
+  border: 1px dashed hsl(var(--border));
   border-radius: 12px;
-  color: #475569;
+  color: hsl(var(--muted-foreground));
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .addChapterButton:hover {
-  background: #e2e8f0;
-  color: #0f172a;
-  border-color: #94a3b8;
+  background: hsl(var(--border));
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--muted-foreground));
 }
 
 /* Footer */
@@ -243,7 +243,7 @@
   gap: 1rem;
   margin-top: 2rem;
   padding-top: 2rem;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid hsl(var(--border));
 }
 
 .publishButton {
@@ -275,9 +275,9 @@
 
 .cancelButton {
   flex: 1;
-  background: #ffffff;
-  color: #64748b;
-  border: 1px solid #e2e8f0;
+  background: hsl(var(--card));
+  color: hsl(var(--muted-foreground));
+  border: 1px solid hsl(var(--border));
   padding: 1rem;
   border-radius: 12px;
   font-weight: 700;
@@ -286,8 +286,8 @@
 }
 
 .cancelButton:hover {
-  background: #f8fafc;
-  color: #1e293b;
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
 }
 
 .statusMessage {
@@ -300,9 +300,9 @@
   margin-bottom: 2rem;
 }
 
-.error { background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; }
-.success { background: #f0fdf4; color: #16a34a; border: 1px solid #dcfce7; }
-.info { background: #eff6ff; color: #2563eb; border: 1px solid #dbeafe; }
+.error { background: hsl(var(--danger-surface)); color: hsl(var(--danger-text)); border: 1px solid hsl(var(--danger-border)); }
+.success { background: hsl(var(--success-surface)); color: hsl(var(--success-text)); border: 1px solid hsl(var(--success-border)); }
+.info { background: hsl(var(--tint)); color: hsl(var(--link)); border: 1px solid hsl(var(--tint-border)); }
 
 .spinner {
   animation: spin 1s linear infinite;
@@ -322,23 +322,23 @@
 .coverPlaceholder {
   width: 140px;
   height: 140px;
-  background: #f1f5f9;
-  border: 1px dashed #cbd5e1;
+  background: hsl(var(--muted));
+  border: 1px dashed hsl(var(--border));
   border-radius: 16px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  color: #64748b;
+  color: hsl(var(--muted-foreground));
   cursor: pointer;
   font-size: 0.8125rem;
 }
 
 .coverPlaceholder:hover {
-  border-color: #0076bb;
-  color: #0076bb;
-  background: #f0f9ff;
+  border-color: hsl(var(--link));
+  color: hsl(var(--link));
+  background: hsl(var(--tint));
 }
 
 .coverPreviewWrapper {
@@ -359,7 +359,7 @@
   position: absolute;
   top: -10px;
   right: -10px;
-  background: #ef4444;
+  background: hsl(var(--danger-text));
   color: white;
   border: none;
   border-radius: 50%;

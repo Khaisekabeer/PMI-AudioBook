@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, LogOut, Volume2, VolumeX, Contrast, Type, Search, Play, Pause, User, Upload } from "lucide-react";
+import { BookOpen, LogOut, Contrast, Type, Search, Play, Upload } from "lucide-react";
 import pmiLogo from "@/assets/pmi-logo.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { useAccessibility, speak } from "@/hooks/useAccessibility";
-import API, { BASE_URL } from "@/api";
+import { useAccessibility } from "@/hooks/useAccessibility";
+import ThemeToggle from "@/components/ThemeToggle";
+import API from "@/api";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -21,15 +22,12 @@ const Dashboard = () => {
 
   const {
     highContrast,
-    voiceEnabled,
     toggleHighContrast,
-    toggleVoiceEnabled,
-    announce
   } = useAccessibility();
 
   useEffect(() => {
     const handleGlobalKeys = (e) => {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+      if (e.target.closest('input, textarea, select, button, a, [contenteditable="true"]')) {
         if (e.key === 'Escape') e.target.blur();
         return;
       }
@@ -37,27 +35,19 @@ const Dashboard = () => {
       if (e.key === '/') {
         e.preventDefault();
         searchInputRef.current?.focus();
-        if (voiceEnabled) speak("Search audiobooks");
       }
 
       if (e.key === ' ') {
         e.preventDefault();
         if (currentlyPlaying) {
           togglePlay();
-          announce(isPlaying ? "Paused" : "Playing", "assertive", true);
-        } else {
-          announce("No audiobook selected. Tab to a book and press Enter to start.", "polite", true);
         }
       }
     };
 
     window.addEventListener('keydown', handleGlobalKeys);
     return () => window.removeEventListener('keydown', handleGlobalKeys);
-  }, [currentlyPlaying, voiceEnabled, isPlaying]);
-
-  useEffect(() => {
-    announce("Dashboard. Explore our collection of audiobooks.", "polite", true);
-  }, [announce]);
+  }, [currentlyPlaying, isPlaying]);
 
   const togglePlay = () => {
     if (audioRef.current) {
@@ -74,7 +64,7 @@ const Dashboard = () => {
     // Check authentication
     const token = localStorage.getItem("token");
     const userData = localStorage.getItem("user");
-    
+
     if (!token || !userData) {
       navigate("/login");
       return;
@@ -83,15 +73,15 @@ const Dashboard = () => {
     try {
       const parsedUser = JSON.parse(userData);
       setUser(parsedUser);
-      
+
       // Removed automatic admin redirect - everyone goes to main dashboard first
-      
+
       // Fetch audiobooks from backend
       const fetchAudiobooks = async () => {
         try {
           const response = await API.get('/books');
           const books = response.data.books || response.data || [];
-          
+
           // Transform data if needed to match frontend structure
           const transformedBooks = books.map(book => {
             // Normalize audio/cover paths from DB (handle old Windows-style backslashes)
@@ -128,25 +118,18 @@ const Dashboard = () => {
               totalPlays: book.totalPlays || 0,
             };
           });
-          
+
           setAudiobooks(transformedBooks);
-          
-          // Announce dashboard loaded
-          if (voiceEnabled) {
-            speak(`Welcome to your dashboard ${parsedUser.name}. You have access to ${transformedBooks.length} audiobooks.`);
-          }
+
         } catch (error) {
           console.error('Error fetching audiobooks:', error);
           // Fallback to empty array if API fails
           setAudiobooks([]);
-          if (voiceEnabled) {
-            speak(`Welcome to your dashboard ${parsedUser.name}. No audiobooks available at the moment.`);
-          }
         } finally {
           setLoading(false);
         }
       };
-      
+
       fetchAudiobooks();
     } catch (error) {
       console.error("Error parsing user data:", error);
@@ -154,12 +137,6 @@ const Dashboard = () => {
       return;
     }
   }, [navigate]);
-
-  useEffect(() => {
-    if (!loading && user && voiceEnabled) {
-      announce("Dashboard loaded successfully", "polite");
-    }
-  }, [loading, user, voiceEnabled, announce]);
 
   // Attach audio events for progress tracking
   useEffect(() => {
@@ -197,17 +174,12 @@ const Dashboard = () => {
     } catch (error) {
       console.error("Logout error:", error);
     }
-    
+
     localStorage.removeItem("token");
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("user");
-    
-    if (voiceEnabled) {
-      speak("You have been logged out successfully. Goodbye!");
-    }
-    announce("Logged out successfully", "assertive");
-    
-    setTimeout(() => navigate("/login"), 1000);
+
+    navigate("/login");
   };
 
   const handlePlayAudiobook = (audiobook) => {
@@ -241,10 +213,6 @@ const Dashboard = () => {
     }
 
     setCurrentlyPlaying(audiobook.id);
-    if (voiceEnabled) {
-      speak(`Now playing ${audiobook.title} by ${audiobook.author}`);
-    }
-    announce(`Playing ${audiobook.title}`, "assertive");
   };
 
   const handlePauseAudiobook = () => {
@@ -253,12 +221,7 @@ const Dashboard = () => {
       audio.pause();
     }
 
-    const audiobook = audiobooks.find(book => book.id === currentlyPlaying);
-    if (voiceEnabled && audiobook) {
-      speak(`Paused ${audiobook.title}`);
-    }
     setCurrentlyPlaying(null);
-    announce("Audiobook paused", "assertive");
   };
 
   const filteredAudiobooks = audiobooks.filter(book =>
@@ -269,52 +232,41 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-50" aria-busy="true">
+      <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950" aria-busy="true">
         <div className="flex flex-col items-center gap-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <span className="text-slate-600 font-medium">Preparing your library...</span>
+          <span className="text-slate-600 dark:text-slate-300 font-medium">Preparing your library...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
       {/* Skip to main content */}
       <a href="#main-content" className="sr-only-focusable">
         Skip to audiobooks
       </a>
 
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-slate-200">
+      <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-50 border-b border-slate-200 dark:border-slate-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             {/* Logo */}
             <div className="flex items-center gap-3">
               <img src={pmiLogo} alt="PMI Logo" className="h-10 w-auto" />
-              <h1 className="text-xl font-extrabold text-slate-800 tracking-tight hidden sm:block">AudioBook</h1>
+              <h1 className="text-xl font-extrabold text-slate-800 dark:text-slate-100 tracking-tight hidden sm:block">AudioBook</h1>
             </div>
 
             <div className="flex items-center gap-1 sm:gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleVoiceEnabled}
-                className={`transition-colors ${voiceEnabled ? "text-blue-600 bg-blue-50 font-bold" : "text-slate-500 hover:text-blue-600"}`}
-                aria-label={voiceEnabled ? "Disable voice feedback" : "Enable voice feedback"}
-                title={voiceEnabled ? "Disable voice" : "Enable voice"}
-                onFocus={() => voiceEnabled && speak(voiceEnabled ? "Disable voice feedback" : "Enable voice feedback")}
-              >
-                {voiceEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
-              </Button>
-              
+              <ThemeToggle />
+
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={toggleHighContrast}
-                className={`transition-colors ${highContrast ? "text-blue-600 bg-blue-50" : "text-slate-500 hover:text-blue-600"}`}
+                className={`transition-colors ${highContrast ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950" : "text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400"}`}
                 aria-label="Toggle high contrast"
-                onFocus={() => voiceEnabled && speak("Toggle high contrast")}
               >
                 <Contrast className="h-5 w-5" />
               </Button>
@@ -324,27 +276,25 @@ const Dashboard = () => {
                   variant="ghost" 
                   size="icon" 
                   onClick={() => navigate('/admindashboard')}
-                  className="text-slate-600 hover:text-blue-600 hover:bg-blue-50"
+                  className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950"
                   title="Admin Upload"
-                  onFocus={() => voiceEnabled && speak("Admin upload dashboard")}
                 >
                   <Upload className="h-5 w-5" />
                 </Button>
               )}
-              
-              <div className="h-6 w-px bg-slate-200 mx-1 hidden sm:block" />
-              
+
+              <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1 hidden sm:block" />
+
               <div className="flex items-center gap-2 ml-2">
                 <div className="hidden sm:flex flex-col items-end">
-                  <span className="text-xs font-semibold text-slate-900 leading-none">{user?.name}</span>
+                  <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 leading-none">{user?.name}</span>
                   <span className="text-[10px] text-slate-400 capitalize">{user?.role}</span>
                 </div>
                 <Button 
                   variant="ghost" 
-                  className="text-slate-600 hover:text-red-500 hover:bg-red-50 p-2"
+                  className="text-slate-600 dark:text-slate-300 hover:text-red-500 hover:bg-red-50 p-2"
                   onClick={handleLogout}
                   title="Logout"
-                  onFocus={() => voiceEnabled && speak("Logout")}
                 >
                   <LogOut className="h-5 w-5" />
                 </Button>
@@ -358,10 +308,10 @@ const Dashboard = () => {
       <main id="main-content" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         {/* Welcome section */}
         <div className="mb-10">
-          <h2 className="text-4xl font-black text-slate-900 mb-3 tracking-tight">
+          <h2 className="text-4xl font-black text-slate-900 dark:text-slate-100 mb-3 tracking-tight">
             Hi, {user?.name?.split(' ')[0]} 👋
           </h2>
-          <p className="text-lg text-slate-500 max-w-2xl">
+          <p className="text-lg text-slate-500 dark:text-slate-400 max-w-2xl">
             Pick up where you left off or explore something new in our collection.
           </p>
         </div>
@@ -376,7 +326,7 @@ const Dashboard = () => {
               placeholder="Search by title or author... (Press / to focus)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-12 bg-white border-slate-200 rounded-xl focus:ring-blue-600 transition-all text-lg"
+              className="pl-10 h-12 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-xl focus:ring-blue-600 transition-all text-lg"
               aria-label="Search audiobooks"
             />
           </div>
@@ -392,14 +342,13 @@ const Dashboard = () => {
             <Card 
               key={audiobook.id} 
               tabIndex={0}
-              className="hover:shadow-xl transition-all duration-300 cursor-pointer border-slate-200 group overflow-hidden focus:ring-2 focus:ring-blue-600 focus:outline-none"
+              className="hover:shadow-xl transition-all duration-300 cursor-pointer border-slate-200 dark:border-slate-700 group overflow-hidden focus:ring-2 focus:ring-blue-600 focus:outline-none"
               role="listitem"
               aria-label={`Audiobook: ${audiobook.title} by ${audiobook.author}. Category: ${audiobook.category}. Duration: ${audiobook.duration}. Click or press Enter to listen.`}
               onClick={() => navigate(`/book/${audiobook.id}`)}
               onKeyDown={(e) => e.key === 'Enter' && navigate(`/book/${audiobook.id}`)}
-              onFocus={() => voiceEnabled && speak(`${audiobook.title} by ${audiobook.author}`)}
             >
-              <div className="aspect-[4/3] relative overflow-hidden bg-slate-100">
+              <div className="aspect-[4/3] relative overflow-hidden bg-slate-100 dark:bg-slate-800">
                 {audiobook.coverImage ? (
                   <img 
                     src={audiobook.coverImage} 
@@ -409,11 +358,11 @@ const Dashboard = () => {
                       e.target.onerror = null; // Prevent infinite loop
                       e.target.style.display = 'none'; // Hide the broken image
                       // Optionally show the fallback div by modifying DOM or better yet, just hide render
-                      e.target.parentElement.innerHTML = '<div class="w-full h-full flex items-center justify-center bg-blue-50"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-book-open text-blue-200"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>';
+                      e.target.parentElement.innerHTML = '<div class="w-full h-full flex items-center justify-center bg-blue-50 dark:bg-blue-950"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-book-open text-blue-200"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>';
                     }}
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-blue-50">
+                  <div className="w-full h-full flex items-center justify-center bg-blue-50 dark:bg-blue-950">
                     <BookOpen size={48} className="text-blue-200" />
                   </div>
                 )}
@@ -423,17 +372,17 @@ const Dashboard = () => {
                 </div>
               </div>
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg font-bold text-slate-800 line-clamp-1 group-hover:text-blue-600 transition-colors">{audiobook.title}</CardTitle>
+                <CardTitle className="text-lg font-bold text-slate-800 dark:text-slate-100 line-clamp-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{audiobook.title}</CardTitle>
                 <CardDescription>
                   <span className="block">By {audiobook.author}</span>
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-slate-500 line-clamp-2 mb-4">
+                <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-4">
                   {audiobook.description}
                 </p>
                 <div className="flex items-center text-xs font-semibold text-slate-400 gap-3">
-                  <span className="bg-slate-50 px-2 py-1 rounded text-blue-600">{audiobook.category}</span>
+                  <span className="bg-slate-50 dark:bg-slate-950 px-2 py-1 rounded text-blue-600 dark:text-blue-400">{audiobook.category}</span>
                   <span>{audiobook.duration}</span>
                 </div>
               </CardContent>
@@ -442,24 +391,24 @@ const Dashboard = () => {
         </div>
 
         {filteredAudiobooks.length === 0 && (
-          <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-200">
+          <div className="text-center py-20 bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-200 dark:border-slate-700">
             <BookOpen className="h-16 w-16 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-slate-800">No books found</h3>
-            <p className="text-slate-500">Try adjusting your search terms.</p>
+            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">No books found</h3>
+            <p className="text-slate-500 dark:text-slate-400">Try adjusting your search terms.</p>
           </div>
         )}
 
         {/* Keyboard shortcuts help */}
-        <div className="mt-16 p-6 bg-blue-50/50 rounded-2xl border border-blue-100">
-          <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <Type className="h-5 w-5 text-blue-600" />
+        <div className="mt-16 p-6 bg-blue-50/50 dark:bg-blue-950/50 rounded-2xl border border-blue-100 dark:border-blue-900">
+          <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
+            <Type className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             Keyboard Shortcuts
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div className="bg-white p-3 rounded-xl shadow-sm"><kbd className="px-1.5 py-0.5 bg-slate-100 border border-slate-200 rounded text-xs">Tab</kbd> Navigate items</div>
-            <div className="bg-white p-3 rounded-xl shadow-sm"><kbd className="px-1.5 py-0.5 bg-slate-100 border border-slate-200 rounded text-xs">Enter</kbd> Open selected book</div>
-            <div className="bg-white p-3 rounded-xl shadow-sm"><kbd className="px-1.5 py-0.5 bg-slate-100 border border-slate-200 rounded text-xs">Space</kbd> Play/Pause last book</div>
-            <div className="bg-white p-3 rounded-xl shadow-sm"><kbd className="px-1.5 py-0.5 bg-slate-100 border border-slate-200 rounded text-xs">/</kbd> Focus search</div>
+            <div className="bg-white dark:bg-slate-900 p-3 rounded-xl shadow-sm"><kbd className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-xs">Tab</kbd> Navigate items</div>
+            <div className="bg-white dark:bg-slate-900 p-3 rounded-xl shadow-sm"><kbd className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-xs">Enter</kbd> Open selected book</div>
+            <div className="bg-white dark:bg-slate-900 p-3 rounded-xl shadow-sm"><kbd className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-xs">Space</kbd> Play/Pause last book</div>
+            <div className="bg-white dark:bg-slate-900 p-3 rounded-xl shadow-sm"><kbd className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-xs">/</kbd> Focus search</div>
           </div>
         </div>
       </main>
@@ -467,10 +416,6 @@ const Dashboard = () => {
       {/* Hidden global audio player */}
       <audio ref={audioRef} className="hidden" />
 
-      {/* Screen reader announcements */}
-      <div aria-live="polite" aria-atomic="true" className="sr-only">
-        <span role="status"></span>
-      </div>
     </div>
   );
 };
