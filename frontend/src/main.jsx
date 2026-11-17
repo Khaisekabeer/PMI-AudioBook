@@ -13,28 +13,13 @@ if (!GOOGLE_CLIENT_ID) {
   console.log('Google Client ID loaded successfully');
 }
 
-// Simple configuration for Google OAuth
-const googleOAuthConfig = {
-  clientId: GOOGLE_CLIENT_ID,
-  onScriptLoadError: () => console.error('Failed to load Google OAuth script'),
-  onScriptLoadSuccess: () => console.log('Google OAuth script loaded successfully'),
-  ux_mode: 'popup',
-  scope: 'profile email',
-  redirect_uri: 'http://localhost:5173',
-  prompt: 'select_account',
-  cookiePolicy: 'single_host_origin'
-};
-
-// Add Google API script to the document head
-const script = document.createElement('script');
-script.src = 'https://accounts.google.com/gsi/client';
-script.async = true;
-script.defer = true;
-document.head.appendChild(script);
-
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <GoogleOAuthProvider {...googleOAuthConfig}>
+    {/* The provider loads the Google Identity Services script itself. */}
+    <GoogleOAuthProvider
+      clientId={GOOGLE_CLIENT_ID}
+      onScriptLoadError={() => console.error('Failed to load Google OAuth script')}
+    >
       <App />
     </GoogleOAuthProvider>
   </React.StrictMode>
