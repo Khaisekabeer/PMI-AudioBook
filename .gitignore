@@ -1,0 +1,39 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+_frontend
+
+# Environment variables (NEVER commit secrets)
+.env
+.env.*
+!.env.example
+
+# Vercel
+.vercel
+
+# Uploads (user-generated content, should live in cloud storage in prod)
+backend/uploads/audio/*
+backend/uploads/covers/*
+!backend/uploads/audio/.gitkeep
+!backend/uploads/covers/.gitkeep
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
